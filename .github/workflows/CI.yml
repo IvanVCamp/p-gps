@@ -1,0 +1,49 @@
+# Archivo de configuración para GitHub Actions
+# Define un flujo de trabajo para integración continua (CI)
+
+name: CI solamente # Nombre del flujo de trabajo
+
+on: # Disparadores del flujo de trabajo
+  push: # Se ejecuta en eventos de push
+    branches: [ master ] # Solo en la rama master
+  workflow_dispatch: # Permite ejecutar el flujo de trabajo manualmente desde la interfaz de GitHub Actions
+
+jobs:
+  build: # Definición del trabajo llamado "build"
+    runs-on: ubuntu-latest # El trabajo se ejecuta en un ejecutor con Ubuntu más reciente
+
+    permissions: # Permisos necesarios para el flujo de trabajo
+      contents: write # Permisos para escribir contenidos (repositorio)
+      packages: write # Permisos para escribir paquetes
+
+    steps: # Pasos a ejecutar dentro del trabajo
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        # Descarga el repositorio en el ejecutor
+
+      - name: Set up JDK 8
+        uses: actions/setup-java@v4
+        with:
+          java-version: '8' # Configura Java Development Kit (JDK) versión 8
+          distribution: 'adopt' # Distribución adoptopenjdk
+          server-id: github # Configura el servidor Maven
+          settings-path: ${{ github.workspace }} # Ubicación para el archivo settings.xml
+
+      #### BUILDS ######
+      - uses: gradle/actions/setup-gradle@v3
+        with:
+          gradle-version: 2.1 # Configura Gradle versión 2.1 para los builds
+
+      - name: build del Front
+        working-directory: src/Clients # Cambia al directorio donde está el frontend
+        run: ./gradlew build # Ejecuta el comando Gradle para construir el frontend
+
+      - uses: actions/upload-artifact@v4
+        # Guarda el artefacto resultante del build del frontend como curiosidad
+        with:
+          name: Clients # Nombre del artefacto
+          path: src/Clients/build/libs # Ruta al artefacto generado
+
+      - name: build del Back
+        working-directory: src/Backend/OrderService # Cambia al directorio del backend
+        run: ./gradlew build test # Construye y ejecuta las pruebas para el backend
